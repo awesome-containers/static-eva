@@ -1,0 +1,27 @@
+# https://github.com/awesome-containers/static-eva
+ARG STATIC_EVA_VERSION=0.3.1
+ARG STATIC_EVA_IMAGE=ghcr.io/awesome-containers/static-eva
+
+# https://github.com/awesome-containers/alpine-build-essential
+ARG BUILD_ESSENTIAL_VERSION=3.17
+ARG BUILD_ESSENTIAL_IMAGE=ghcr.io/awesome-containers/alpine-build-essential
+
+
+FROM $STATIC_EVA_IMAGE:$STATIC_EVA_VERSION AS static-eva
+FROM $BUILD_ESSENTIAL_IMAGE:$BUILD_ESSENTIAL_VERSION AS build
+
+WORKDIR /src/eva
+COPY --from=static-eva /bin/eva ./
+
+RUN set -xeu; \
+    upx --no-progress --no-color eva; \
+    upx -t --no-progress --no-color eva; \
+    chmod -cR 755 eva; \
+    chown -cR 0:0 eva; \
+    ! ldd eva && :; \
+    ./eva --version
+
+# slim static eva image
+FROM scratch
+COPY --from=build /src/eva/eva /bin/eva
+ENTRYPOINT ["/bin/eva"]
